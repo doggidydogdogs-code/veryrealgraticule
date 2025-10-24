@@ -1,44 +1,55 @@
-import 'ol/ol.css';
-import Map from 'ol/Map.js';
-import View from 'ol/View.js';
-import TileLayer from 'ol/layer/Tile.js';
-import OSM from 'ol/source/OSM.js';
-import Graticule from 'ol/layer/Graticule.js';
-import { Stroke } from 'ol/style.js';
-import { get as getProjection, toLonLat } from 'ol/proj.js';
-import { formatLat, formatLon } from './format-coords.js';
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Styled Graticule Map</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@10.6.1/ol.css">
+    <style>
+      html, body, #map { height: 100%; margin: 0; }
+      #controls {
+        position: absolute;
+        top: 8px; left: 8px;
+        background: rgba(255,255,255,0.9);
+        padding: 6px 10px;
+        border-radius: 8px;
+        font-family: sans-serif;
+        font-size: 13px;
+      }
+      label { display:block; margin-top:4px; }
+      .coord-label {
+        position:absolute;
+        font-family: monospace;
+        font-size:12px;
+        color:#000;
+        background:rgba(255,255,255,0.6);
+        padding:2px 4px;
+        border-radius:3px;
+      }
+      #leftLabels, #rightLabels, #topLabels, #bottomLabels {
+        position:absolute; pointer-events:none;
+      }
+      #leftLabels { left:2px; top:0; bottom:0; display:flex; flex-direction:column; justify-content:space-between;}
+      #rightLabels{ right:2px; top:0; bottom:0; display:flex; flex-direction:column; justify-content:space-between;}
+      #topLabels  { top:2px; left:0; right:0; display:flex; justify-content:space-between;}
+      #bottomLabels{ bottom:2px; left:0; right:0; display:flex; justify-content:space-between;}
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
 
-// Map setup
-const map = new Map({
-  target: 'map',
-  layers: [
-    new TileLayer({
-      source: new OSM({
-        attributions: '© OpenStreetMap contributors',
-        crossOrigin: 'anonymous'
-      })
-    }),
-    new Graticule({
-      strokeStyle: new Stroke({
-        color: 'rgba(255,255,255,0.4)',
-        width: 1
-      }),
-      showLabels: true,
-      lonLabelFormatter: (lon) => formatLon(lon),
-      latLabelFormatter: (lat) => formatLat(lat),
-      wrapX: true
-    })
-  ],
-  view: new View({
-    center: [13500000, 1500000], // ~Philippines in EPSG:3857
-    zoom: 4,
-    projection: getProjection('EPSG:3857')
-  })
-});
+    <div id="controls">
+      <label>Land color: <input type="color" id="landColor" value="#FFEABD"></label>
+      <label>Ocean color: <input type="color" id="oceanColor" value="#BEE8FF"></label>
+      <label>Grid color: <input type="color" id="gridColor" value="#000000"></label>
+      <label>Line width: <input type="number" id="gridWidth" value="1" min="0.5" max="5" step="0.5"></label>
+    </div>
 
-// Mouse coordinate display
-map.on('pointermove', function (evt) {
-  const [lon, lat] = toLonLat(evt.coordinate);
-  document.getElementById('mouseCoords').textContent =
-    `Lat: ${formatLat(lat)}  Lon: ${formatLon(lon)}`;
-});
+    <!-- side coordinate containers -->
+    <div id="leftLabels"></div>
+    <div id="rightLabels"></div>
+    <div id="topLabels"></div>
+    <div id="bottomLabels"></div>
+
+    <script type="module" src="main.js"></script>
+  </body>
+</html>
