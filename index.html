@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Leaflet Map with Graticule</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    html, body, #map {
+      height: 100%;
+      margin: 0;
+    }
+    .coords-label {
+      background: rgba(255,255,255,0.8);
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.graticule@0.0.2/dist/Leaflet.Graticule.js"></script>
+
+  <script>
+    // Create map
+    const map = L.map('map', {
+      minZoom: 2,
+      maxZoom: 10,
+      worldCopyJump: true
+    }).setView([14.6, 121], 5);
+
+    // Base map
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Add graticule
+    L.graticule({
+      interval: 10,
+      showOriginLabel: true,
+      redraw: 'move',
+      style: { color: '#666', weight: 1, opacity: 0.6 }
+    }).addTo(map);
+
+    // Add coordinate display (bottom left)
+    const coords = L.control({ position: 'bottomleft' });
+    coords.onAdd = function () {
+      this._div = L.DomUtil.create('div', 'coords-label');
+      this.update();
+      return this._div;
+    };
+    coords.update = function (lat, lng) {
+      this._div.innerHTML = lat && lng ?
+        `Lat: ${lat.toFixed(3)}°, Lon: ${lng.toFixed(3)}°` :
+        'Move mouse over map';
+    };
+    coords.addTo(map);
+
+    map.on('mousemove', e => coords.update(e.latlng.lat, e.latlng.lng));
+  </script>
+</body>
+</html>
