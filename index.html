@@ -1,27 +1,44 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <title>Storm-Style Graticule Map</title>
-    <link rel="stylesheet" href="node_modules/ol/ol.css">
-    <style>
-      html, body, #map { height: 100%; margin: 0; }
-      .mouse-coords {
-        position: absolute;
-        bottom: 10px;
-        left: 10px;
-        background: rgba(0,0,0,0.6);
-        color: #fff;
-        padding: 5px 8px;
-        border-radius: 5px;
-        font-family: monospace;
-        font-size: 12px;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="map" class="map"></div>
-    <div id="mouseCoords" class="mouse-coords">Lat: —, Lon: —</div>
-    <script type="module" src="main.js"></script>
-  </body>
-</html>
+import 'ol/ol.css';
+import Map from 'ol/Map.js';
+import View from 'ol/View.js';
+import TileLayer from 'ol/layer/Tile.js';
+import OSM from 'ol/source/OSM.js';
+import Graticule from 'ol/layer/Graticule.js';
+import { Stroke } from 'ol/style.js';
+import { get as getProjection, toLonLat } from 'ol/proj.js';
+import { formatLat, formatLon } from './format-coords.js';
+
+// Map setup
+const map = new Map({
+  target: 'map',
+  layers: [
+    new TileLayer({
+      source: new OSM({
+        attributions: '© OpenStreetMap contributors',
+        crossOrigin: 'anonymous'
+      })
+    }),
+    new Graticule({
+      strokeStyle: new Stroke({
+        color: 'rgba(255,255,255,0.4)',
+        width: 1
+      }),
+      showLabels: true,
+      lonLabelFormatter: (lon) => formatLon(lon),
+      latLabelFormatter: (lat) => formatLat(lat),
+      wrapX: true
+    })
+  ],
+  view: new View({
+    center: [13500000, 1500000], // ~Philippines in EPSG:3857
+    zoom: 4,
+    projection: getProjection('EPSG:3857')
+  })
+});
+
+// Mouse coordinate display
+map.on('pointermove', function (evt) {
+  const [lon, lat] = toLonLat(evt.coordinate);
+  document.getElementById('mouseCoords').textContent =
+    `Lat: ${formatLat(lat)}  Lon: ${formatLon(lon)}`;
+});
