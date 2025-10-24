@@ -1,0 +1,24 @@
+body {
+  font-family: "Segoe UI", sans-serif;
+  background-color: #BEE8FF; /* ocean */
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+
+h2 {
+  margin-top: 10px;
+}
+
+.map {
+  width: 95%;
+  height: 500px;
+  border: 4px solid #FFEABD; /* land border color */
+  margin: 10px auto;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+
+.controls {
+  margin-bottom: 10px;
+}
