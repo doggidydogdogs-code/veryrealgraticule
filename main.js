@@ -1,108 +1,73 @@
-import 'https://cdn.jsdelivr.net/npm/ol@10.6.1/ol.css';
-import Map from 'https://cdn.jsdelivr.net/npm/ol@10.6.1/Map.js';
-import View from 'https://cdn.jsdelivr.net/npm/ol@10.6.1/View.js';
-import {Fill, Stroke, Style} from 'https://cdn.jsdelivr.net/npm/ol@10.6.1/style.js';
-import TileLayer from 'https://cdn.jsdelivr.net/npm/ol@10.6.1/layer/Tile.js';
-import {fromLonLat, toLonLat, get as getProjection} from 'https://cdn.jsdelivr.net/npm/ol@10.6.1/proj.js';
-import Graticule from 'https://cdn.jsdelivr.net/npm/ol@10.6.1/layer/Graticule.js';
-import {createEmpty, extend} from 'https://cdn.jsdelivr.net/npm/ol@10.6.1/extent.js';
+import 'ol/ol.css';
+import Map from 'ol/Map.js';
+import View from 'ol/View.js';
+import TileLayer from 'ol/layer/Tile.js';
+import OSM from 'ol/source/OSM.js';
+import Graticule from 'ol/layer/Graticule.js';
+import { Stroke, Fill, Style, Text } from 'ol/style.js';
+import { get as getProjection } from 'ol/proj.js';
 
-// --- simple coordinate formatter
-function fmtDeg(val, isLat){
-  const hemi = isLat ? (val>=0?'N':'S') : (val>=0?'E':'W');
-  const abs=Math.abs(val);
-  const d=Math.floor(abs);
-  const m=Math.floor((abs-d)*60);
-  return `${d}°${m.toString().padStart(2,'0')}'${hemi}`;
+// Format like 14°30'N 125°15'E
+function formatCoord(value, isLat) {
+  const hemisphere = isLat ? (value >= 0 ? 'N' : 'S') : (value >= 0 ? 'E' : 'W');
+  const abs = Math.abs(value);
+  const degrees = Math.floor(abs);
+  const minutes = Math.floor((abs - degrees) * 60);
+  return `${degrees}°${minutes.toString().padStart(2, '0')}'${hemisphere}`;
 }
 
-// --- base colored canvas layer
-const background = document.createElement('canvas');
-background.width = background.height = 2;
-const ctx = background.getContext('2d');
-ctx.fillStyle = '#FFEABD'; ctx.fillRect(0,0,1,1);   // land placeholder
-ctx.fillStyle = '#BEE8FF'; ctx.fillRect(1,0,1,1);   // ocean placeholder
-// just dummy base—actual OSM layer will be tinted below
+let graticuleColor = '#333333';
+let graticuleWidth = 1;
 
-const osm = new TileLayer({
-  source: new ol.source.OSM({
-    crossOrigin:'anonymous',
-  }),
-  opacity: 0.7,
-});
-
-// --- graticule layer
-let gridColor = '#000000', gridWidth = 1;
-const graticule = new Graticule({
-  strokeStyle: new Stroke({ color: gridColor, width: gridWidth }),
-  showLabels: false,
-  wrapX: true,
-  intervals: [1,2,5,10,15,30,45,90]
-});
-
-// --- map
+// Base map
 const map = new Map({
   target: 'map',
-  layers: [osm, graticule],
+  layers: [
+    new TileLayer({ source: new OSM() })
+  ],
   view: new View({
-    center: fromLonLat([125, 13]),
-    zoom: 5,
+    center: [13400000, 1500000],
+    zoom: 4,
     projection: getProjection('EPSG:3857')
   })
 });
 
-// --- side coordinate labels
-function updateSideLabels() {
-  const view = map.getView();
-  const extent = view.calculateExtent(map.getSize());
-  const corners = ol.proj.transformExtent(extent, 'EPSG:3857', 'EPSG:4326');
-  const [minLon, minLat, maxLon, maxLat] = corners;
+// Add graticule
+const graticule = new Graticule({
+  strokeStyle: new Stroke({ color: graticuleColor, width: graticuleWidth }),
+  showLabels: true,
+  lonLabelFormatter: (lon) => formatCoord(lon, false),
+  latLabelFormatter: (lat) => formatCoord(lat, true),
+  lonLabelPosition: 0.98,
+  latLabelPosition: 0.02,
+  lonLabelStyle: new Style({
+    text: new Text({
+      font: '12px Segoe UI',
+      fill: new Fill({ color: '#000' }),
+      backgroundFill: new Fill({ color: 'rgba(255,255,255,0.7)' }),
+      padding: [2,4,2,4],
+    })
+  }),
+  latLabelStyle: new Style({
+    text: new Text({
+      font: '12px Segoe UI',
+      fill: new Fill({ color: '#000' }),
+      backgroundFill: new Fill({ color: 'rgba(255,255,255,0.7)' }),
+      padding: [2,4,2,4],
+    })
+  }),
+  wrapX: true,
+});
+map.addLayer(graticule);
 
-  // intervals roughly matching graticule
-  const step = 5;
-  const left = document.getElementById('leftLabels');
-  const right = document.getElementById('rightLabels');
-  const top = document.getElementById('topLabels');
-  const bottom = document.getElementById('bottomLabels');
-  [left,right,top,bottom].forEach(d => d.innerHTML='');
-
-  for(let lat=Math.ceil(minLat/step)*step; lat<=maxLat; lat+=step){
-    const label = fmtDeg(lat,true);
-    [left,right].forEach(d=>{
-      const span=document.createElement('div');
-      span.textContent=label;
-      span.className='coord-label';
-      d.appendChild(span);
-    });
-  }
-  for(let lon=Math.ceil(minLon/step)*step; lon<=maxLon; lon+=step){
-    const label = fmtDeg(lon,false);
-    [top,bottom].forEach(d=>{
-      const span=document.createElement('div');
-      span.textContent=label;
-      span.className='coord-label';
-      d.appendChild(span);
-    });
-  }
-}
-map.on('moveend', updateSideLabels);
-updateSideLabels();
-
-// --- color / width controls
-function updateGrid() {
-  gridColor = document.getElementById('gridColor').value;
-  gridWidth = parseFloat(document.getElementById('gridWidth').value);
-  graticule.setStrokeStyle(new Stroke({color:gridColor,width:gridWidth}));
+// Control updates
+document.getElementById('graticuleColor').addEventListener('input', (e) => {
+  graticule.strokeStyle_ = new Stroke({ color: e.target.value, width: graticuleWidth });
   map.render();
-}
-['gridColor','gridWidth'].forEach(id=>{
-  document.getElementById(id).addEventListener('input',updateGrid);
 });
 
-function tintMap(){
-  document.body.style.backgroundColor=document.getElementById('oceanColor').value;
-}
-['landColor','oceanColor'].forEach(id=>{
-  document.getElementById(id).addEventListener('input',tintMap);
+document.getElementById('graticuleWidth').addEventListener('input', (e) => {
+  graticuleWidth = parseFloat(e.target.value);
+  graticule.strokeStyle_ = new Stroke({ color: graticuleColor, width: graticuleWidth });
+  map.render();
 });
-tintMap();
